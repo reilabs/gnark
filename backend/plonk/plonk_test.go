@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/consensys/gnark"
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/kzg"
@@ -295,6 +297,33 @@ func referenceCircuit(curve ecc.ID) (constraint.ConstraintSystem, frontend.Circu
 		panic(err)
 	}
 	return ccs, &good, srs, srsLagrange
+}
+
+func TestCompileDoesntCorruptCircuit(t *testing.T) {
+	assert := assert.New(t)
+	for _, curve := range getCurves() {
+		// This is deliberately instantiated inside the loop so each iteration gets a fresh object
+		circuit := commitmentCircuit{X: 3}
+
+		t.Run(
+			curve.String(), func(t *testing.T) {
+				ccs, err := frontend.Compile(curve.ScalarField(), scs.NewBuilder, &circuit)
+				assert.NoError(err)
+				assert.NotNil(ccs)
+
+				// NewWitness fails if Compile is called on &circuit first.
+				// It works ok if Compile is called after NewWitness.
+				w, err := frontend.NewWitness(&circuit, curve.ScalarField())
+				if err != nil {
+					t.Fatalf(
+						"frontend.Compile() corrupted circuit for curve %v; err: %v",
+						curve.String(), err
+					)
+				}
+				assert.NotNil(w)
+			},
+		)
+	}
 }
 
 type commitmentCircuit struct {
