@@ -105,8 +105,10 @@ func Setup(spr *cs.SparseR1CS, srs, srsLagrange kzg.SRS) (*ProvingKey, *Verifyin
 	}
 
 	// same for the lagrange form
-	if len(srsLagrange.Pk.G1) != int(domain.Cardinality) {
-		return nil, nil, fmt.Errorf("kzg srs lagrange is too small: got %d, need %d", len(srsLagrange.Pk.G1), domain.Cardinality)
+	if len(srsLagrange.Pk.G1) < int(domain.Cardinality) {
+		return nil, nil, fmt.Errorf(
+			"kzg srs lagrange is too small: got %d, need %d", len(srsLagrange.Pk.G1), domain.Cardinality,
+		)
 	}
 
 	// step 1: set the verifying key
